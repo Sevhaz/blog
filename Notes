@@ -1,0 +1,97 @@
+Step-by-step Plan
+Set up project + dependencies
+
+____________________________________________
+Init Go module
+Add gorm, pgx, github.com/golang-jwt/jwt, bcrypt
+
+_______________________________________________
+Create models
+User & Post with GORM annotations and UUID
+Connect to PostgreSQL
+Use .env for secure config
+
+______________________________________
+Auth logic
+Register (hash password)
+Login (check password + return JWT)
+
+_____________________________________
+Middleware
+Check JWT for protected routes
+_________________________________________
+Post Handlers
+Create, Read (all + one), Update, Delete
+
+_____________________________________
+Routes
+Wire everything with net/http
+Render Deployment
+Use Docker or render.yaml
+Set up env vars on Render
+
+question 4
+----------------------------------------------------------------------------------------------------
+
+User registration & login (bcrypt + JWT/session)
+Authenticated users can:
+Create, view, update, and delete their own posts
+View all posts from other users
+___________________________________________________-
+Middleware:
+Auth check
+RESTful JSON API
+PostgreSQL database with GORM
+Secure .env usage
+____________________________________________-
+ Models
+User
+type User struct { 
+ID uuid.UUID gorm:"type:uuid;default:uuid_generate_v4();primaryKey" 
+Name string 
+Email string gorm:"unique" 
+Password string 
+Posts []Post 
+}
+
+
+Post
+type Post struct { 
+ID uuid.UUID gorm:"type:uuid;default:uuid_generate_v4();primaryKey" 
+Title string 
+Content string gorm:"type:text" 
+AuthorID uuid.UUID 
+Author User
+CreatedAt time.Time
+UpdatedAt time.Time }
+
+
+____________________________________________________
+ Routes to Implement
+ Auth
+/registerRegister new userPOST
+/loginLog in & return token/session
+ _____________________________________
+ Users
+/meGet logged-in user info
+
+______________________________________________
+ Posts
+/postsList all posts
+/posts/:idView a single post
+/postsCreate post (auth required)
+/posts/:idUpdate own post
+/posts/:idDelete own post
+
+
+Deployment
+Deploy backend to Render
+Set and use environment variables via .env
+
+
+submission
+
+For weekly assignment submission: 
+Due: friday 5pm 
+Submission: put first 3 questions into an algo.go folder and then create the API as normal 
+For submission, put the live link into main.go as a comment // and then share the GitHub link in the submission post comments
