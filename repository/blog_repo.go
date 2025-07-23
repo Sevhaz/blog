@@ -2,39 +2,41 @@ package repository
 
 import (
 	"blog/models"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-type BlogRepository struct {
-	db *gorm.DB
+type BlogRepository interface {
+	GetAllPosts(userID uuid.UUID) ([]models.Blog, error)
+	GetBlogByID(id string) (*models.Blog, error)
+	CreateBlog(post *models.Blog) error
+	SaveBlog(post *models.Blog) error
 }
 
-func NewBlogRepository(db *gorm.DB) *BlogRepository {
-	return &BlogRepository{db: db}
+type BlogRepo struct {
+	Db *gorm.DB
 }
 
-func (r *BlogRepository) Create(blog *models.Blog) error {
-	return r.db.Create(blog).Error
+func (r *BlogRepo) GetAllPosts(userID uuid.UUID) ([]models.Blog, error) {
+	var posts []models.Blog
+	err := r.Db.Where("author_id = ?", userID).Find(&posts).Error
+	return posts, err
+
 }
 
-func (r *BlogRepository) GetByID(id uuid.UUID) (*models.Blog, error) {
-	var blog models.Blog
-	err := r.db.First(&blog, "id = ?", id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &blog, nil
+func (r *BlogRepo) GetBlogByID(id string) (*models.Blog, error) {
+	var post models.Blog
+	err := r.Db.Preload("Author").Where("ID = ?", id).First(&post).Error
+	return &post, err
 }
 
-func (r *BlogRepository) ListByUserID(userID uuid.UUID) ([]models.Blog, error) {
-	var blogs []models.Blog
-	err := r.db.Where("user_id = ?", userID).Find(&blogs).Error
-	return blogs, err
+func (r *BlogRepo) CreateBlog(post *models.Blog) error {
+	err := r.Db.Create(post).Error
+	return err
 }
 
-func (r *BlogRepository) Update(blog *models.Blog) error {
-	return r.db.Save(blog).Error
+func (r *BlogRepo) SaveBlog(post *models.Blog) error {
+	err := r.Db.Save(post).Error
+	return err
 }
-
-func (r *BlogReposi*

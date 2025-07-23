@@ -1,24 +1,64 @@
-package utils
+package services
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"blog/middleware"
+	"blog/models"
+	"blog/repository"
+	"blog/utils"
+	"errors"
 
-type contextKey string
+	"github.com/golang-jwt/jwt/v5"
+)
 
-const UserContextKey = contextKey("userClaims")
-
-func HashPassword(p string) (string, error) {
-	hashPass, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hashPass), nil
+type UserService struct {
+	Repo repository.UserRepository
 }
 
-func ComparePassword(hashPassword, plainPassword string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(hashPassword), []byte(plainPassword))
+
+func (s *UserService) Register(req *models.User) error {
+	_, err := s.Repo.GetUserByEmail(req.Email)
+	if err == nil {
+		return errors.New("email is linked to an existing user")
+	}
+
+	hashPass, err := utils.HashPassword(req.Password)
+	if err != nil {
+		return err
+	}
+	req.Password = hashPass
+
+	err = s.Repo.CreateUser(req)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+// calling the service layer
+func (s *UserService) Login(req *models.User) (string, error) {
+	user, err := s.Repo.GetUserByEmail(req.Email)
+	if err != nil {
+		return "", err
+	}
+
+	err = utils.ComparePassword(user.Password, req.Password)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := middleware.GenerateJWT(user.ID)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+func (s *UserService) LoginInfo(claims jwt.MapClaims) (*models.User, error) {
+	userId := claims["userID"].(string)
+	user, err := s.Repo.GetUserByID(userId)
+	if err != nil {
+		return &models.User{}, err
+	}
+	return user, nil
+}

@@ -1,25 +1,51 @@
-package services
+package handlers
 
 import (
-	"errors"
-	"library/db"
-	"library/models"
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
+	"blog/models"
+	"blog/services"
+	"encoding/json"
+	"net/http"
+
+	_ "github.com/golang-jwt/jwt/v5"
+	_ "gorm.io/gorm"
 )
 
-type UserService struct{}
-
-func (s *UserService) Register(user *models.User) error {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	user.Password = string(hashed)
-	return db.Db.Create(user).Error
+type UserHandler struct {
+	Service *services.UserService
 }
 
-func (s *UserService) Login(user *models.User) (string, error) {
-	var foundUser models.User
-	err := db.Db.Where("email = ?", user.
+func (s *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
+	var req models.User
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = s.Service.Register(&req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode("user successfully created")
+}
+
+func (s *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var req models.User
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	token, err := s.Service.Login(&req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(token)
+}

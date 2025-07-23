@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"blog/utils"
 	"context"
 	"fmt"
 	"net/http"
@@ -9,36 +10,57 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
-type contextKey string
-
-const UserContextKey contextKey = "user"
-
-func GenerateJWT(userID string, role string) (string, error) {
+func GenerateJWT(userID uuid.UUID) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID": userID,
-		"role":   role,
-		"exp":    time.Now().Add(time.Hour * 24).Unix(),
+		"exp":    time.Now().Add(24 * time.Hour).Unix(),
 	})
 
-	tokenString, err := token.SignedString([]byte(secret))
+	tokenStr, err := token.SignedString([]byte(secret))
 	if err != nil {
 		return "", err
 	}
-
-	return tokenString, nil
+	return tokenStr, nil
 }
 
-func VerifyJWT(tokenString string) (*jwt.Token, error) {
+func VerifyJWT(tokenStr string) (jwt.MapClaims, error) {
 	secret := os.Getenv("JWT_SECRET")
-	t, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+	t, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method : %v", t.Header["alg"])
 		}
 		return []byte(secret), nil
 	})
-	if
+	if err != nil {
+		return nil, err
+	}
+	claims, ok := t.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid claims format")
+	}
 
+	return claims, nil
+}
+
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "missing token", http.StatusUnauthorized)
+			return
+		}
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		claims, err := VerifyJWT(tokenString)
+		if err != nil {
+			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+		ctx := context.WithValue(r.Context(), utils.UserContextKey, claims)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
