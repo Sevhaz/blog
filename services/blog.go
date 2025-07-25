@@ -1,9 +1,11 @@
 package services
 
 import (
-	
+
 	"blog/models"
 	"blog/repository"
+	
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -24,13 +26,13 @@ func (s *BlogService) ListAllPosts(claims jwt.MapClaims) ([]models.Blog, error) 
 	return posts, nil
 }
 
-// func (s *BlogService) GetPost(id string) (*models.Blog, error) {
-// 	blog, err := s.Repo.GetPostByID(id)
-// 	if err != nil {
-// 		return &models.Blog{}, err
-// 	}
-// 	return blog, nil
-// }
+func (s *BlogService) GetPost(id uuid.UUID) (*models.Blog, error) {
+	blog, err := s.Repo.GetBlogByID(id)
+	if err != nil {
+		return &models.Blog{}, err
+	}
+	return blog, nil
+}
 
 func (s *BlogService) CreateBlogPost(req *models.Blog, claims jwt.MapClaims) error {
 	userId, err := uuid.Parse(claims["userID"].(string))
@@ -45,45 +47,33 @@ func (s *BlogService) CreateBlogPost(req *models.Blog, claims jwt.MapClaims) err
 	return nil
 }
 
-// func (s *BlogService) UpdatePost(req *models.Blog, blogID string, claims jwt.MapClaims) error {
-// 	blog, err := s.Repo.GetPostByID(blogID)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	userId, err := uuid.Parse(claims["userID"].(string))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if blog.AuthorID != userId {
-// 		return errors.New("unable edit others posts")
-// 	}
+func (s *BlogService) UpdateBlog(req *models.Blog, blogID string) error {
+	id:= uuid.MustParse(blogID)
+	blog, err := s.Repo.GetBlogByID(id)
+	if err != nil {
+		return err
+	}
+	
+	if req.Title != ""{
+	blog.Title = req.Title	
+	}
+	if req.Content != ""{
+	blog.Content = req.Content
+	}
+	
+	err = s.Repo.SaveBlog(blog)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-// 	blog.Title = req.Title
-// 	blog.Content = req.Content
-// 	req = blog
-// 	err = s.Repo.SaveBlog(req)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+func (s *BlogService) DeleteBlogPost(blogID string) error {
+	id:= uuid.MustParse(blogID)
 
-// func (s *BlogService) DeletePost(claims jwt.MapClaims, id string) error {
-// 	post, err := s.Repo.GetPostByID(id)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	userId, err := uuid.Parse(claims["userID"].(string))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if post.AuthorID != userId {
-// 		return errors.New("unable to delete blogs")
-// 	}
-
-// 	err = database.Db.Delete(post).Error
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+	err := s.Repo.DeleteBlogPost(id)
+	if err != nil {
+		return err
+	}
+	return nil
+}

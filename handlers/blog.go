@@ -8,7 +8,8 @@ import (
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
-	_"github.com/gorilla/mux"
+	"github.com/gorilla/mux"
+	_ "github.com/gorilla/mux"
 )
 
 type BlogHandler struct {
@@ -40,14 +41,14 @@ func (h *BlogHandler) CreateBlogPost(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode("blog successfully created")
 }
 
-func (h *BlogHandler) GetBlogs(w http.ResponseWriter, r *http.Request) {
+
+ func (h *BlogHandler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 	
 	claims, ok := r.Context().Value(utils.UserContextKey).(jwt.MapClaims)
 	if !ok {
-		http.Error(w, "user not found in context", http.StatusInternalServerError)
+		http.Error(w, "user not found", http.StatusInternalServerError)
 		return
 	}
-
 	
 
 	blogPosts, err := h.Service.ListAllPosts(claims)
@@ -55,26 +56,43 @@ func (h *BlogHandler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(blogPosts)
 }
+func (h *BlogHandler) UpdateBlogPost(w http.ResponseWriter, r *http.Request) {
+	var req models.Blog
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	params:= mux.Vars(r)
+	blogid := params["id"]
+	err = h.Service.UpdateBlog(&req, blogid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode("blog successfully updated")
+}
 
-// func (h *BlogHandler) DeleteBlog(w http.ResponseWriter, r *http.Request) {
-// 	claims, ok := r.Context().Value(utils.UserContextKey).(jwt.MapClaims)
-// 	if !ok {
-// 		http.Error(w, "user not found in context", http.StatusInternalServerError)
-// 		return
-// 	}
 
-// 	vars := mux.Vars(r)
-// 	userID := vars["userID"]
+func (h *BlogHandler) DeleteBlogPost(w http.ResponseWriter, r *http.Request) {
+	
+	vars := mux.Vars(r)
+	id:= vars["id"]
+	
+	err := h.Service.DeleteBlogPost(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-// 	err := h.Service.DeleteBlog(claims, userID)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode("blog successfully deleted")
+}
 
-// 	w.WriteHeader(http.StatusNoContent)
-// }

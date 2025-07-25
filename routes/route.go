@@ -20,10 +20,10 @@ func SetUpRouter(userHandler *handlers.UserHandler, postHandler *handlers.BlogHa
 	//p.HandleFunc("/me", userHandler.LoginInfo).Methods("GET")
 
 	p.HandleFunc("/posts", postHandler.GetBlogs).Methods("GET")
-	//p.HandleFunc("/posts/{id}", postHandler.BlogByID).Methods("GET")
+	p.HandleFunc("/posts/{id}", postHandler.GetBlogs).Methods("GET")
 	p.HandleFunc("/posts", postHandler.CreateBlogPost).Methods("POST")
-	//p.HandleFunc("/posts/{id}",postHandler.UpdateBlog).Methods("PUT")
-	//p.HandleFunc("/posts/{id}",postHandler.DeleteBlog).Methods("DELETE")
+	p.HandleFunc("/posts/{id}",postHandler.UpdateBlogPost).Methods("PUT")
+	p.HandleFunc("/posts/{id}",postHandler.DeleteBlogPost).Methods("DELETE")
 
 	return r
 }

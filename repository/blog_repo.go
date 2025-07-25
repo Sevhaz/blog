@@ -9,9 +9,10 @@ import (
 
 type BlogRepository interface {
 	GetAllPosts(userID uuid.UUID) ([]models.Blog, error)
-	GetBlogByID(id string) (*models.Blog, error)
+	GetBlogByID(id uuid.UUID) (*models.Blog, error)
 	CreateBlog(post *models.Blog) error
 	SaveBlog(post *models.Blog) error
+	DeleteBlogPost(id uuid.UUID) error
 }
 
 type BlogRepo struct {
@@ -25,18 +26,23 @@ func (r *BlogRepo) GetAllPosts(userID uuid.UUID) ([]models.Blog, error) {
 
 }
 
-func (r *BlogRepo) GetBlogByID(id string) (*models.Blog, error) {
+func (r *BlogRepo) GetBlogByID(id uuid.UUID) (*models.Blog, error) {
 	var post models.Blog
-	err := r.Db.Preload("Author").Where("ID = ?", id).First(&post).Error
+	err := r.Db.Preload("Author").Where("id = ?", id).First(&post).Error
 	return &post, err
 }
 
 func (r *BlogRepo) CreateBlog(post *models.Blog) error {
-	err := r.Db.Create(post).Error
+	err := r.Db.Create(&post).Error
 	return err
 }
 
 func (r *BlogRepo) SaveBlog(post *models.Blog) error {
-	err := r.Db.Save(post).Error
+	err := r.Db.Save(&post).Error
+	return err
+}
+
+func (r *BlogRepo) DeleteBlogPost(id uuid.UUID) error {
+	err := r.Db.Delete(models.Blog{},"id = ?",id).Error
 	return err
 }
